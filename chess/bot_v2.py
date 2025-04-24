@@ -25,7 +25,7 @@ def findBestMove(gs, validMoves, returnQueue):
 
     turnMultiplier = 1 if gs.whiteToMove else -1
     startTime = time.time()
-    timeLimit = 10
+    timeLimit = 2
 
     findMoveNegaMaxAlphaBeta(gs, validMoves, DEPTH,
                              -CHECKMATE, CHECKMATE,

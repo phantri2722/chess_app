@@ -80,7 +80,6 @@ def log_result(bot1, bot2, result, file="training_log.json"):
     print("Log written:", entry)
 
 
-
 if __name__ == "__main__":
-    summary = evaluate_bots("bot_v1", "bot_v2", num_games=1)
+    summary = evaluate_bots("bot_v3", "bot_v2", num_games=1 )
     print("Match Result Summary:", summary)

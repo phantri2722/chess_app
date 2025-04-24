@@ -1,2 +1,2 @@
-{"timestamp": "2025-04-24T17:30:31.833659", "bot1": "bot_v1", "bot2": "bot_v2", "results": {"bot1_win": 0, "bot2_win": 0, "draw": 1}}
-{"timestamp": "2025-04-24T17:40:57.688780", "bot1": "bot_v1", "bot2": "bot_v2", "results": {"bot1_win": 1, "bot2_win": 0, "draw": 0}}
+{"timestamp": "2025-04-24T19:43:46.488460", "bot1": "bot_v1", "bot2": "bot_v2", "results": {"bot1_win": 0, "bot2_win": 0, "draw": 1}}
+{"timestamp": "2025-04-24T21:39:17.960211", "bot1": "bot_v1", "bot2": "bot_v2", "results": {"bot1_win": 2, "bot2_win": 1, "draw": 7}}
