@@ -1,5 +1,7 @@
 # Chess bot
 import random
+import time
+
 pieceScore = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "p": 1}
 
 knightScores = [[1, 1, 1, 1, 1, 1, 1, 1],
@@ -56,15 +58,12 @@ blackPawnScores = [[0, 0, 0, 0, 0, 0, 0, 0],
                    [8, 8, 8, 8, 8, 8, 8, 8],
                    [8, 8, 8, 8, 8, 8, 8, 8]]
 
-
 piecePositionScores = {"N": knightScores, "B": bishopScores, "Q": queenScores,
                        "R": rookScores, "wp": whitePawnScores, "bp": blackPawnScores}
-
 
 CHECKMATE = 1000
 STALEMATE = 0
 DEPTH = 4
-SET_WHITE_AS_BOT = -1
 
 
 def findRandomMoves(validMoves):
@@ -79,48 +78,59 @@ def findBestMove(gs, validMoves, returnQueue):
     if gs.playerWantsToPlayAsBlack:
         whitePawnScores, blackPawnScores = blackPawnScores, whitePawnScores
 
-    SET_WHITE_AS_BOT = 1 if gs.whiteToMove else -1
+    turnMultiplier = 1 if gs.whiteToMove else -1
+    startTime = time.time()
+    timeLimit = 10
 
-    findMoveNegaMaxAlphaBeta(gs, validMoves, DEPTH, -
-                             CHECKMATE, CHECKMATE,  SET_WHITE_AS_BOT)
+    findMoveNegaMaxAlphaBeta(gs, validMoves, DEPTH,
+                             -CHECKMATE, CHECKMATE,
+                             turnMultiplier,
+                             startTime, timeLimit)
+    if nextMove is None and validMoves:
+        nextMove = validMoves[0]
 
     returnQueue.put(nextMove)
 
 
-def findMoveNegaMaxAlphaBeta(gs, validMoves, depth, alpha, beta, turnMultiplier):
+def findMoveNegaMaxAlphaBeta(gs, validMoves, depth, alpha, beta, turnMultiplier, startTime, timeLimit):
     global nextMove
+    if time.time() - startTime > timeLimit:
+        return 0
+
     if depth == 0:
-        return turnMultiplier * scoreBoard(gs)
+        return turnMultiplier * scoreBoard(gs, turnMultiplier)
 
     maxScore = -CHECKMATE
     for move in validMoves:
         gs.makeMove(move)
-        nextMoves = gs.getValidMoves()  
-        
-        score = - \
-            findMoveNegaMaxAlphaBeta(
-                gs, nextMoves, depth-1, -beta, -alpha, -turnMultiplier)
+        nextMoves = gs.getValidMoves()
+        score = -findMoveNegaMaxAlphaBeta(gs, nextMoves, depth-1, -beta, -alpha, -turnMultiplier, startTime, timeLimit)
+        gs.undoMove()
+
+        if time.time() - startTime > timeLimit:
+            return 0
+
         if score > maxScore:
             maxScore = score
             if depth == DEPTH:
                 nextMove = move
                 print(move, score)
-        gs.undoMove()
+
         if maxScore > alpha:
-            alpha = maxScore  
-        if alpha >= beta:  
+            alpha = maxScore
+        if alpha >= beta:
             break
     return maxScore
 
 
-def scoreBoard(gs):
+def scoreBoard(gs, turnMultiplier):
     if gs.checkmate:
         if gs.whiteToMove:
             gs.checkmate = False
-            return -CHECKMATE  
+            return -CHECKMATE
         else:
             gs.checkmate = False
-            return CHECKMATE  
+            return CHECKMATE
     elif gs.stalemate:
         return STALEMATE
 
@@ -135,18 +145,15 @@ def scoreBoard(gs):
                         piecePositionScore = piecePositionScores[square][row][col]
                     else:
                         piecePositionScore = piecePositionScores[square[1]][row][col]
-                if SET_WHITE_AS_BOT:
+
+                if turnMultiplier == 1:
                     if square[0] == 'w':
-                        score += pieceScore[square[1]] + \
-                            piecePositionScore * .1
+                        score += pieceScore[square[1]] + piecePositionScore * .1
                     elif square[0] == 'b':
-                        score -= pieceScore[square[1]] + \
-                            piecePositionScore * .1
+                        score -= pieceScore[square[1]] + piecePositionScore * .1
                 else:
                     if square[0] == 'w':
-                        score -= pieceScore[square[1]] + \
-                            piecePositionScore * .1
+                        score -= pieceScore[square[1]] + piecePositionScore * .1
                     elif square[0] == 'b':
-                        score += pieceScore[square[1]] + \
-                            piecePositionScore * .1
+                        score += pieceScore[square[1]] + piecePositionScore * .1
     return score

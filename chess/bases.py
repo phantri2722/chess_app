@@ -272,7 +272,7 @@ class GameState():
                 enemyColor = 'w'
                 kingRow, kingCol = self.blackKinglocation
 
-        if self.board[row + moveAmount][col] == "--":  
+        if 0 <= row + moveAmount < 8 and self.board[row + moveAmount][col] == "--": 
             if not piecePinned or pinDirection == (moveAmount, 0):
                 moves.append(
                     Move((row, col), (row+moveAmount, col), self.board))
@@ -282,9 +282,10 @@ class GameState():
         
         if col-1 >= 0: 
             if not piecePinned or pinDirection == (moveAmount, -1):
-                if self.board[row+moveAmount][col-1][0] == enemyColor:
-                    moves.append(
-                        Move((row, col), (row+moveAmount, col-1), self.board))
+                if 0 <= row + moveAmount < 8 and 0 <= col - 1 < 8:
+                    if self.board[row + moveAmount][col - 1][0] == enemyColor:
+                        moves.append(
+                            Move((row, col), (row+moveAmount, col-1), self.board))
                 if (row+moveAmount, col-1) == self.enpasantPossible:
                     attackingPiece = blockingPiece = False
                     if kingRow == row:
@@ -307,9 +308,10 @@ class GameState():
                                           self.board, isEnpassantMove=True))
         if col+1 <= 7:  
             if not piecePinned or pinDirection == (moveAmount, 1):
-                if self.board[row+moveAmount][col+1][0] == enemyColor:
-                    moves.append(
-                        Move((row, col), (row+moveAmount, col+1), self.board))
+                if 0 <= row + moveAmount < 8 and 0 <= col + 1 < 8:
+                    if self.board[row + moveAmount][col + 1][0] == enemyColor:
+                        moves.append(
+                            Move((row, col), (row+moveAmount, col+1), self.board))
                 if (row+moveAmount, col+1) == self.enpasantPossible:
                     attackingPiece = blockingPiece = False
                     if kingRow == row:
