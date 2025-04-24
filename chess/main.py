@@ -23,32 +23,12 @@ IMAGES = {}
 SET_WHITE_AS_BOT = False
 SET_BLACK_AS_BOT = False
 
-# Define colors
-
-# 1 Green
-
+# Green color
 LIGHT_SQUARE_COLOR = (237, 238, 209)
 DARK_SQUARE_COLOR = (119, 153, 82)
 MOVE_HIGHLIGHT_COLOR = (84, 115, 161)
 POSSIBLE_MOVE_COLOR = (255, 255, 51)
 
-# 2 Brown
-
-'''
-LIGHT_SQUARE_COLOR = (240, 217, 181)
-DARK_SQUARE_COLOR = (181, 136, 99)
-MOVE_HIGHLIGHT_COLOR = (84, 115, 161)
-POSSIBLE_MOVE_COLOR = (255, 255, 51)
-'''
-
-# 3 Gray
-
-'''
-LIGHT_SQUARE_COLOR = (220,220,220)
-DARK_SQUARE_COLOR = (170,170,170)
-MOVE_HIGHLIGHT_COLOR = (84, 115, 161)
-POSSIBLE_MOVE_COLOR = (164,184,196)
-'''
 
 # Tải ảnh quân cờ
 def loadImages():
@@ -146,14 +126,10 @@ def highlightSquares(screen, gs, validMoves, squareSelected):
         row, col = squareSelected
         
         if gs.board[row][col][0] == ('w' if gs.whiteToMove else 'b'):
-            # highlight selected piece square
-            # Surface in pygame used to add images or transperency feature
             s = p.Surface((SQ_SIZE, SQ_SIZE))
-            # set_alpha --> transperancy value (0 transparent)
             s.set_alpha(100)
             s.fill(p.Color(MOVE_HIGHLIGHT_COLOR))
             screen.blit(s, (col*SQ_SIZE, row*SQ_SIZE))
-            # highlighting valid square
             s.fill(p.Color(POSSIBLE_MOVE_COLOR))
             for move in validMoves:
                 if move.startRow == row and move.startCol == col:
@@ -171,7 +147,6 @@ def drawPieces(screen, board):
 
 # Hiển thị lịch sử các nước đi
 def drawMoveLog(screen, gs, font):
-    # rectangle
     moveLogRect = p.Rect(
         BOARD_WIDTH, 0, MOVE_LOG_PANEL_WIDTH, MOVE_LOG_PANEL_HEIGHT)
     p.draw.rect(screen, p.Color(LIGHT_SQUARE_COLOR), moveLogRect)
@@ -185,8 +160,8 @@ def drawMoveLog(screen, gs, font):
         moveTexts.append(moveString)
 
     movesPerRow = 3
-    padding = 10  # Increase padding for better readability
-    lineSpacing = 5  # Increase line spacing for better separation
+    padding = 10  
+    lineSpacing = 5  
     textY = padding
 
     for i in range(0, len(moveTexts), movesPerRow):
@@ -197,33 +172,25 @@ def drawMoveLog(screen, gs, font):
 
         textObject = font.render(text, True, p.Color('black'))
 
-        # Adjust text location based on padding and line spacing
         textLocation = moveLogRect.move(padding, textY)
         screen.blit(textObject, textLocation)
 
-        # Update Y coordinate for the next line with increased line spacing
         textY += textObject.get_height() + lineSpacing
 
  
 # Hiển thị khi kết thúc trò chơi
 def drawEndGameText(screen, text):
-    # create font object with type and size of font you want
     font = p.font.SysFont("Times New Roman", 30, False, False)
-    # use the above font and render text (0 ? antialias)
     textObject = font.render(text, True, p.Color('black'))
 
-    # Get the width and height of the textObject
     text_width = textObject.get_width()
     text_height = textObject.get_height()
 
-    # Calculate the position to center the text on the screen
     textLocation = p.Rect(0, 0, BOARD_WIDTH, BOARD_HEIGHT).move(
         BOARD_WIDTH/2 - text_width/2, BOARD_HEIGHT/2 - text_height/2)
 
-    # Blit the textObject onto the screen at the calculated position
     screen.blit(textObject, textLocation)
 
-    # Create a second rendering of the text with a slight offset for a shadow effect
     textObject = font.render(text, 0, p.Color('Black'))
     screen.blit(textObject, textLocation.move(1, 1))
 
@@ -260,137 +227,136 @@ def main():
     countMovesForDraw = 0 
     COUNT_DRAW = 0
     while running:
+        # Lượt đi của người chơi
         humanTurn = (gs.whiteToMove and playerWhiteHuman) or (
             not gs.whiteToMove and playerBlackHuman)
         
         # Xử lý sự kiện
         for e in p.event.get():
+            # Sự kiện thoát game
             if e.type == p.QUIT:
                 running = False
-            # Xử lý click chuột
+            # Sự kiện click chuột
             elif e.type == p.MOUSEBUTTONDOWN:
+                # Khi game chưa kết thúc
                 if not gameOver:  
                     location = p.mouse.get_pos()
                     col = location[0]//SQ_SIZE
                     row = location[1]//SQ_SIZE
-                    # if user clicked on same square twice or user click outside board
+                    # Khi người chơi click chuột vào cùng 1 ô vuông 2 lần hoặc click chuột vào ô vuông ngoài bàn cờ
                     if squareSelected == (row, col) or col >= 8:
-                        squareSelected = ()  # deselect
-                        playerClicks = []  # clear player clicks
+                        squareSelected = ()  
+                        playerClicks = []  
                     else:
                         squareSelected = (row, col)
-                        # append player both clicks (place and destination)
                         playerClicks.append(squareSelected)
-                    # after second click (at destination)
+                    # Khi người chơi click chuột lần thứ 2 (đích)
                     if len(playerClicks) == 2 and humanTurn:
-                        # user generated a move
                         move = Move(playerClicks[0], playerClicks[1], gs.board)
                         for i in range(len(validMoves)):
-                            # check if the move is in the validMoves
+                            # Nước đi hợp lệ
                             if move == validMoves[i]:
-                                # Check if a piece is captured at the destination square
-                                # print(gs.board[validMoves[i].endRow][validMoves[i].endCol])
+                                # Khi quân cờ đã được chọn và người chơi click chuột vào ô vuông có quân cờ khác --> ăn quân
                                 if gs.board[validMoves[i].endRow][validMoves[i].endCol] != '--':
                                     pieceCaptured = True
                                 gs.makeMove(validMoves[i])
+                                # Khi nước đi là phong cấp tốt
                                 if (move.isPawnPromotion):
-                                    # Show pawn promotion popup and get the selected piece
                                     promotion_choice = pawnPromotionPopup(
                                         screen, gs)
-                                    # Set the promoted piece on the board
                                     gs.board[move.endRow][move.endCol] = move.pieceMoved[0] + \
                                         promotion_choice
                                     promote_sound.play()
                                     pieceCaptured = False
-                                # add sound for human move
+
+                                # Hiệu ứng âm thanh cho nước đi
                                 if (pieceCaptured or move.isEnpassantMove):
-                                    # Play capture sound
                                     capture_sound.play()
-                                    # print("capture sound")
                                 elif not move.isPawnPromotion:
-                                    # Play move sound
                                     move_sound.play()
-                                    # print("move sound")
+
+                                # Đưa các giá trị về mặc định
                                 pieceCaptured = False
                                 moveMade = True
-                                animate = True
                                 squareSelected = ()
                                 playerClicks = []
+                        # Nếu nước đi chưa được thực hiện
                         if not moveMade:
                             playerClicks = [squareSelected]
 
-            # Key Handler
+            # Sự kiện bàn phím
             elif e.type == p.KEYDOWN:
-                if e.key == p.K_z:  # undo when z is pressed
+                # Bấm phím Z --> hoàn tác nước đi
+                if e.key == p.K_z:  
                     gs.undoMove()
-                    # when user undo move valid move change, here we could use [ validMoves = gs.getValidMoves() ] which would update the current validMoves after undo
+                    # Khi hoàn tác nước đi thì ta phải cập nhật lại danh sách các nước đi hợp lệ
                     moveMade = True
-                    animate = False
                     gameOver = False
+                    # Nếu đang lượt đi của AI --> dừng lại
                     if AIThinking:
-                        moveFinderProcess.terminate()  # terminate the ai thinking if we undo
+                        moveFinderProcess.terminate()  
                         AIThinking = False
                     moveUndone = True
-                if e.key == p.K_r:  # reset board when 'r' is pressed
+                # Bấm phím R --> khởi động lại bàn cờ
+                if e.key == p.K_r:  
                     gs = GameState()
                     validMoves = gs.getValidMoves()
                     squareSelected = ()
                     playerClicks = []
                     moveMade = False
-                    animate = False
                     gameOver = False
+                    # Néu đang lượt đi của AI --> dừng lại
                     if AIThinking:
-                        moveFinderProcess.terminate()  # terminate the ai thinking if we undo
+                        moveFinderProcess.terminate()  
                         AIThinking = False
                     moveUndone = True
 
-        # AI move finder
+        # Nếu không phải lượt của người chơi và không có nước đi nào được thực hiện
         if not gameOver and not humanTurn and not moveUndone:
+            # Nếu AI đang suy nghĩ --> gọi hàm tìm nước đi tốt nhất và bắt đầu quy trình tìm kiếm nước đi của AI
             if not AIThinking:
                 AIThinking = True
-                returnQueue = Queue()  # keep track of data, to pass data between threads
+                returnQueue = Queue()  
                 moveFinderProcess = Process(target=findBestMove, args=(
-                    gs, validMoves, returnQueue))  # when processing start we call these process
-                # call findBestMove(gs, validMoves, returnQueue) #rest of the code could still work even if the ai is thinking
+                    gs, validMoves, returnQueue))  
                 moveFinderProcess.start()
-                # AIMove = findBestMove(gs, validMoves)
-                # gs.makeMove(AIMove)
+            # Nếu quy trình tìm kiếm nước đi của AI đã hoàn thành
             if not moveFinderProcess.is_alive():
-                AIMove = returnQueue.get()  # return from returnQueue
+                AIMove = returnQueue.get()
+                # Nếu không tìm thấy nước đi nào tốt --> tìm nước đi ngẫu nhiên
                 if AIMove is None:
                     AIMove = findRandomMoves(validMoves)
-
+                # Nếu đích đến nước đi của AI chứa quân cờ của đối phương --> ăn quân
                 if gs.board[AIMove.endRow][AIMove.endCol] != '--':
                     pieceCaptured = True
-
+                
+                # Thực hiện nước đi của AI
                 gs.makeMove(AIMove)
 
+                # Nếu nước đi của AI là phong cấp tốt
                 if AIMove.isPawnPromotion:
-                    # Show pawn promotion popup and get the selected piece
                     promotion_choice = pawnPromotionPopup(screen, gs)
-                    # Set the promoted piece on the board
                     gs.board[AIMove.endRow][AIMove.endCol] = AIMove.pieceMoved[0] + \
                         promotion_choice
                     promote_sound.play()
                     pieceCaptured = False
 
-                # add sound for human move
+                # Hiệu ứng âm thanh cho nước đi
                 if (pieceCaptured or AIMove.isEnpassantMove):
-                    # Play capture sound
                     capture_sound.play()
-                    # print("capture sound")
                 elif not AIMove.isPawnPromotion:
-                    # Play move sound
                     move_sound.play()
-                    # print("move sound")
+
+                # Đưa các giá trị về mặc định
                 pieceCaptured = False
                 AIThinking = False
                 moveMade = True
-                animate = True
                 squareSelected = ()
                 playerClicks = []
 
+        # Nếu nước đi đã được thực hiện
         if moveMade:
+            # Trong cờ vua, ván đấu sẽ hoà nếu cùng một vị trí trên bàn cờ được lặp lại 3 lần (không nhất thiết phải liên tiếp nhau) --> kiểm tra mỗi 4 nước đi
             if countMovesForDraw == 0 or countMovesForDraw == 1 or countMovesForDraw == 2 or countMovesForDraw == 3:
                 countMovesForDraw += 1
             if countMovesForDraw == 4:
@@ -405,22 +371,25 @@ def main():
                     countMovesForDraw = 0
                     COUNT_DRAW = 0
             
-            # genetare new set of valid move if valid move is made
+            # Tạo lại danh sách các nước đi hợp lệ khi nước đi đã được thực hiện
             validMoves = gs.getValidMoves()
             moveMade = False
-            animate = False
             moveUndone = False
 
+        # Vẽ trạng thái trò chơi
         drawGameState(screen, gs, validMoves, squareSelected, moveLogFont)
 
+        # Hoà
         if COUNT_DRAW == 1:
             gameOver = True
             text = 'Draw due to repetition'
             drawEndGameText(screen, text)
+        # Hết nước đi
         if gs.stalemate:
             gameOver = True
             text = 'Stalemate'
             drawEndGameText(screen, text)
+        # Chiếu hết
         elif gs.checkmate:
             gameOver = True
             text = 'Black wins by checkmate' if gs.whiteToMove else 'White wins by checkmate'
@@ -430,9 +399,6 @@ def main():
         p.display.flip()
 
 
-
-
-
-# if we import main then main function wont run it will run only while running this file
+# Chạy chương trình
 if __name__ == "__main__":
     main()

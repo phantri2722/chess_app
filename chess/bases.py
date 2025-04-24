@@ -1,7 +1,7 @@
-
-# Có trách nhiệm lưu trữ mọi thông tin về trạng thái hiện tại của ván cờ, xác định nước đi hợp lệ, có thể hoàn tác các nước đi...
+# Cơ sở của trò chơi
 
 class GameState():
+    # Hàm khởi tạo
     def __init__(self):
         self.board = [
             ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR'],
@@ -26,10 +26,8 @@ class GameState():
         self.moveFunctions = {'p': self.getPawnMoves, 'R': self.getRookMoves, 'N': self.getKnightMoves,
                               'B': self.getBishopMoves, 'Q': self.getQueenMoves, 'K': self.getKingMoves}
         self.whiteToMove = True
-        # Đặt playerWantsToPlayAsBlack = True nếu bạn muốn lật bàn cờ và chơi với quân đen
         self.playerWantsToPlayAsBlack = False
         self.moveLog = []
-        # theo dõi vị trí của vua để tránh bị chiếu và cũng giúp nhập thành dễ dàng hơn
         if (self.playerWantsToPlayAsBlack):
             self.whiteKinglocation = (0, 4)
             self.blackKinglocation = (7, 4)
@@ -42,17 +40,16 @@ class GameState():
         self.score = 0
         self.pins = []
         self.checks = []
-        # Toạ độ ô vuông khi nước đi enpassant khả thi
         self.enpasantPossible = ()
         self.enpasantPossibleLog = [self.enpasantPossible]
-        # Xử lý quyền nhập thành (chỉ khi xe và vua chưa bao giờ di chuyển)
         self.whiteCastleKingside = True
         self.whiteCastleQueenside = True
         self.blackCastleKingside = True
         self.blackCastleQueenside = True
         self.castleRightsLog = [castleRights(
             self.whiteCastleKingside, self.whiteCastleQueenside, self.blackCastleKingside, self.blackCastleQueenside)]
-
+    
+    # Hàm thực hiện nước đi
     def makeMove(self, move):
         self.board[move.startRow][move.startCol] = "--"
         self.board[move.endRow][move.endCol] = move.pieceMoved
@@ -71,10 +68,6 @@ class GameState():
             self.blackCastleKingside = False
             self.blackCastleQueenside = False
 
-        # Phong cấp tốt (Biến tốt thành hậu)
-        # if move.isPawnPromotion:
-            # self.board[move.endRow][move.endCol] = move.pieceMoved[0] + 'Q'
-
         # Nước đi enpassant 
         if move.isEnpassantMove:
             # quân bắt được, (cùng hàng, cột cuối) là vị trí của quân tốt đối phương tính từ quân tốt của ta
@@ -90,7 +83,7 @@ class GameState():
             # Nếu sau khi đối phương di chuyển quân tốt tới ô thú hai thay vì bắt nó với nước đi enpassant chúng ta lại đi một nước khác thì enpassant sẽ không còn khả thi nữa
             self.enpasantPossible = ()
 
-        # update Log which side castle is possible
+        # Cập nhật vị trí có thể nhập thành (queenSide hoặc kingSide)
         self.updateCastleRights(move)
         self.castleRightsLog.append(castleRights(
             self.whiteCastleKingside, self.whiteCastleQueenside, self.blackCastleKingside, self.blackCastleQueenside))
@@ -98,7 +91,7 @@ class GameState():
         # Cập nhật nhật ký enpassant
         self.enpasantPossibleLog.append(self.enpasantPossible)
 
-        # castle moves
+        # Nhập thành
         if move.castle:
             # King Side
             if move.endCol - move.startCol == 2:
@@ -113,20 +106,22 @@ class GameState():
                                         1] = self.board[move.endRow][move.endCol - 2]
                 self.board[move.endRow][move.endCol - 2] = "--"
 
+    # Hoàn tác nước đi
     def undoMove(self):
-        if len(self.moveLog) != 0:  # there is atleast one move to undo
+        # Danh sách các nước đi không rỗng
+        if len(self.moveLog) != 0:  
             move = self.moveLog.pop()
             self.board[move.startRow][move.startCol] = move.pieceMoved
             self.board[move.endRow][move.endCol] = move.pieceCaptured
-            self.whiteToMove = not self.whiteToMove  # swap player
+            self.whiteToMove = not self.whiteToMove  
 
-            # undo updated king's location
+            # Hoàn tác cập nhật vị trí của quân vua
             if move.pieceMoved == 'wK':
                 self.whiteKinglocation = (move.startRow, move.startCol)
             elif move.pieceMoved == 'bK':
                 self.blackKinglocation = (move.startRow, move.startCol)
 
-            # enpassant move
+            # Enpassant 
             if move.isEnpassantMove:
                 self.board[move.endRow][move.endCol] = "--"
                 self.board[move.startRow][move.endCol] = move.pieceCaptured
@@ -156,13 +151,8 @@ class GameState():
             self.checkmate = False
             self.stalemate = False
 
-    # move is valid if your king is in check and you move the piece which stops you from check
+    # Danh sách các nước đi hợp lệ
     def getValidMoves(self):
-        # 1) first generate all possible moves for the piece of player in check
-        # 2) for each move, make a move for the player in check
-        # 3) generate all opponent moves after you moved-your-piece(when you called makeMove) to prevent check
-        # 4) for each of opponents moves, see if opponents still attack your king
-        # 5) if they still attack your king, its not a valid move
         moves = []
         self.inCheck, self.pins, self.checks = self.checkForPinsAndChecks()
         if self.whiteToMove:
@@ -172,71 +162,47 @@ class GameState():
             kingRow = self.blackKinglocation[0]
             kingCol = self.blackKinglocation[1]
         if self.inCheck:
-            # only one check to the king, move the king or block the check with a piece
+
             if len(self.checks) == 1:
                 moves = self.getAllPossibleMoves()
-                # (row, col) of the piece which is causing the check
+
                 check = self.checks[0]
                 checkRow = check[0]
                 checkCol = check[1]
-                # position of the piece which is causing the check
+
                 pieceChecking = self.board[checkRow][checkCol]
-                validSquares = []  # sqaures that pieces can move to
-                # if check is from knight than either move the king or take the knight
+                validSquares = []  
+
                 if pieceChecking[1] == 'N':
                     validSquares = [(checkRow, checkCol)]
                 else:
                     for i in range(1, 8):
-                        # check[2], check[3] are the check directions
                         validSq = (kingRow + check[2]
                                    * i, kingCol + check[3] * i)
                         validSquares.append(validSq)
-                        # upto the piece applying check
                         if validSq[0] == checkRow and validSq[1] == checkCol:
                             break
-                # remove the move that dosen't prevent from check
-                # going backward in all possible moves
                 for i in range(len(moves) - 1, -1, -1):
-                    # as the king is not moved it should block the check if not then remove the move from moves
                     if moves[i].pieceMoved[1] != 'K':
-                        # if not in validSquares then it do not block check or capture the piece making check
                         if not (moves[i].endRow, moves[i].endCol) in validSquares:
-                            moves.remove(moves[i])  # remove the moves
-                    '''
-                        till know we will be able to find check and can move piece to block check but we are doing nothing about the pin so it will allow us to moved the pin pieced 
-                        what if we move the king and is in the position of pinned we would still be able to move the pinned piece and let king be in check
-                    '''
-            else:  # if double check then king has to move
+                            moves.remove(moves[i])  
+            else:  
                 self.getKingMoves(kingRow, kingCol, moves)
-        else:  # not in check all checks in moves are fine
+        else: 
             moves = self.getAllPossibleMoves()
 
         if len(moves) == 0:
             if self.inCheck:
                 self.checkmate = True
-                # print("checkmate")
             else:
                 self.stalemate = True
-                # print("stalemate")
         else:
             self.checkmate = False
             self.stalemate = False
 
         return moves
 
-    '''
-    # check if the current player is in check
-    def inCheck(self):
-        # after we moved a piece to prevent from check its still out turn to play,
-        # as we changed turn back to us before calling inCheck, to get the king's position to see if king is still under attack
-        if self.whiteToMove:
-            return self.squareUnderAttack(self.whiteKinglocation[0], self.whiteKinglocation[1])
-        else:
-            return self.squareUnderAttack(self.blackKinglocation[0], self.blackKinglocation[1])
-    '''
-
-    # check if enemy can attack your king after you make a move while you were in check
-    # row, col is the position of the king in attack
+    # Kiểm tra xem ô vuông bất kỳ có bị tấn công không
     def squareUnderAttack(self, row, col, allyColor):
         enemyColor = 'w' if allyColor == 'b' else 'b'
         directions = ((-1, 0), (0, -1), (1, 0), (0, 1),
@@ -248,50 +214,32 @@ class GameState():
                 endCol = col + d[1] * i
                 if 0 <= endRow < 8 and 0 <= endCol < 8:
                     endPiece = self.board[endRow][endCol]
-                    if endPiece[0] == allyColor:  # no attack from that direction
+                    if endPiece[0] == allyColor:  
                         break
                     elif endPiece[0] == enemyColor:
                         type = endPiece[1]
-                        # Possibilities
-                        # 1) Rook in any orthogonal directions
-                        # 2) Bishop in any diagonal
-                        # 3) Queen in orthogonal or diagonal directions
-                        # 4) Pawn if onw square away in any diagonal
-                        # 5) King in any direction to 1 square (to prevent king move controlled by another king)
-                        '''
-                        For Rook we will check only if directions and up, down, left, right which is in range 0 <= j <=  3 in directions.
-                        Similarty for bishop, in directions we have added the bishop direction in directions (4 to 7).
-                        For pawn if one forward diagonal square in front of king has opponent's pawn
-                        '''
                         if (0 <= j <= 3 and type == 'R') or (4 <= j <= 7 and type == 'B') or \
                             (i == 1 and type == 'p' and ((enemyColor == 'w' and 6 <= j <= 7) or (enemyColor == 'b' and 4 <= j <= 5))) or \
                                 (type == 'Q') or (i == 1 and type == 'K'):
                             return True
-                        else:  # enemy piece not applying check
+                        else:  
                             break
-                else:  # off board
+                else:  
                     break
 
+    # Danh sách các nước đi có thể đi hiện tại
     def getAllPossibleMoves(self):
         moves = []
         for row in range(len(self.board)):
-            # traverse every position to find validmove for each piece
             for col in range(len(self.board[0])):
-                # check if the piece on the board[row][col] is black or white or empty
                 turn = self.board[row][col][0]
-                # check if the piece is white and white to move or piece is black and black to move
                 if (turn == 'w' and self.whiteToMove) or (turn == 'b' and not self.whiteToMove):
-                    # if the piece is bR(black rook) or wp(white pawn) it returns the second character (R for Rook, Q for Queen, p for Pawn)
                     piece = self.board[row][col][1]
-                    # same as (if piece == p (pawn)) -> self.getPawnMoves(row,col,moves)
                     self.moveFunctions[piece](row, col, moves)
         return moves
 
-    # Get all the Pawn moves for the Pawn located at row, col and add it to the moves
+    # Xử lý di chuyển quân tốt
     def getPawnMoves(self, row, col, moves):
-        '''
-        to move the pawn we will first check if its in check or not
-        '''
         piecePinned = False
         pinDirection = ()
         for i in range(len(self.pins)-1, -1, -1):
@@ -324,19 +272,15 @@ class GameState():
                 enemyColor = 'w'
                 kingRow, kingCol = self.blackKinglocation
 
-        if self.board[row + moveAmount][col] == "--":  # first square move
-            # if piece is not pinned then its fine or if it is pinned but from forward direction then we can still move
+        if self.board[row + moveAmount][col] == "--":  
             if not piecePinned or pinDirection == (moveAmount, 0):
                 moves.append(
                     Move((row, col), (row+moveAmount, col), self.board))
-                # Check if pawn can directly advance to second square
                 if row == startRow and self.board[row+2*moveAmount][col] == "--":
                     moves.append(
                         Move((row, col), (row+2*moveAmount, col), self.board))
-        # capture
-        if col-1 >= 0:  # there is a col to the left for white
-            # check if there is a black piece to the left of your pawn that you can capture
-            # if piece is not pinned then its fine or if it is pinned but from left direction then we can capture left piece
+        
+        if col-1 >= 0: 
             if not piecePinned or pinDirection == (moveAmount, -1):
                 if self.board[row+moveAmount][col-1][0] == enemyColor:
                     moves.append(
@@ -344,16 +288,12 @@ class GameState():
                 if (row+moveAmount, col-1) == self.enpasantPossible:
                     attackingPiece = blockingPiece = False
                     if kingRow == row:
-                        if kingCol < col:  # king is left of the pawn
-                            # between king and pawn
+                        if kingCol < col:  
                             insideRange = range(kingCol + 1, col - 1)
-                            # between pawn and boarder
                             outsideRange = range(col + 1, 8)
-                        else:  # king is right of the pawn
                             insideRange = range(kingCol - 1, col, - 1)
                             outsideRange = range(col - 2, -1, -1)
                         for i in insideRange:
-                            # other piece blocking check
                             if self.board[row][i] != "--":
                                 blockingPiece = True
                         for i in outsideRange:
@@ -365,9 +305,7 @@ class GameState():
                     if not attackingPiece or blockingPiece:
                         moves.append(Move((row, col), (row+moveAmount, col-1),
                                           self.board, isEnpassantMove=True))
-        if col+1 <= 7:  # there is a col to the right for white
-            # check if there is a black piece to the right of your pawn that you can capture
-            # if piece is not pinned then its fine or if it is pinned but from left direction then we can capture right piece
+        if col+1 <= 7:  
             if not piecePinned or pinDirection == (moveAmount, 1):
                 if self.board[row+moveAmount][col+1][0] == enemyColor:
                     moves.append(
@@ -375,16 +313,12 @@ class GameState():
                 if (row+moveAmount, col+1) == self.enpasantPossible:
                     attackingPiece = blockingPiece = False
                     if kingRow == row:
-                        if kingCol < col:  # king is left of the pawn
-                            # between king and pawn
+                        if kingCol < col:  
                             insideRange = range(kingCol + 1, col)
-                            # between pawn and boarder
                             outsideRange = range(col + 2, 8)
-                        else:  # king is right of the pawn
                             insideRange = range(kingCol - 1, col + 1, - 1)
                             outsideRange = range(col - 1, -1, -1)
                         for i in insideRange:
-                            # other piece blocking check
                             if self.board[row][i] != "--":
                                 blockingPiece = True
                         for i in outsideRange:
@@ -397,7 +331,7 @@ class GameState():
                         moves.append(Move((row, col), (row+moveAmount, col+1),
                                           self.board, isEnpassantMove=True))
 
-    # Get all the Rook moves for the Rook located at row, col and add it to the moves
+    # Xử lý di chuyển quân xe
     def getRookMoves(self, row, col, moves):
         piecePinned = False
         pinDirection = ()
@@ -406,52 +340,33 @@ class GameState():
                 piecePinned = True
                 pinDirection = (self.pins[i][2], self.pins[i][3])
                 if self.board[row][col][1] != 'Q':
-                    '''
-                    Don't remove queen from pin on rook moves, we can remove the pin in bishop move
-
-                    let we removed pin on rook moves, asssume pinned in forward direction from the king after this while we will call 
-                    getRookMoves again while genetaring queen moves it will lis queen as not pinned (as we had removed the pin from the list) so
-                    we will be able the queen in any direction leaving king in check
-
-                    we can remove the pin in bishop move because while generating queen moves it will generate possible bishop moves where queen can go(go in same direction as pinned if pinned)
-                    and while generating rook moves for queen it will not generate an possible rook move for queen as for condition self.board[row][col][1] != 'Q':
-
-                    '''
                     self.pins.remove(self.pins[i])
                 break
 
-        # down #up #right #left (row, col)
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-        # enemy color is b if whiteToMove or vice versa
         enemy_color = 'b' if self.whiteToMove else 'w'
 
         for direction in directions:
-            for i in range(1, 8):  # from one position rook can go upto max 7th square
-                endRow = row + direction[0] * i  # destination row
-                endCol = col + direction[1] * i  # destination col
+            for i in range(1, 8):  
+                endRow = row + direction[0] * i  
+                endCol = col + direction[1] * i  
 
-                if 0 <= endRow < 8 and 0 <= endCol < 8:  # on the board
-                    # if piece is not pinned then its fine or if it is pinned but from forward direction then we can still move in both forward and backward direction
+                if 0 <= endRow < 8 and 0 <= endCol < 8:  
                     if not piecePinned or pinDirection == direction or pinDirection == (-direction[0], -direction[1]):
-                        # check if next square is empty
                         if self.board[endRow][endCol] == '--':
-                            # if empty then add moves
                             moves.append(
                                 Move((row, col), (endRow, endCol), self.board))
-                        # check if piece on next square is opponent
                         elif self.board[endRow][endCol][0] == enemy_color:
-                            # if piece is not pinned then its fine or if it is pinned but from forward direction then we can still move
                             if not piecePinned or pinDirection == direction:
-                                # then you can at it to the move as you can capture it
                                 moves.append(
                                     Move((row, col), (endRow, endCol), self.board))
                             break
-                        else:  # if neither then break
+                        else: 
                             break
-                    else:  # out of the board
+                    else:  
                         break
 
-    # Get all the Bishop moves for the Bishop located at row, col and add it to the moves
+    # Xử lý di chuyển quân tượng
     def getBishopMoves(self, row, col, moves):
         piecePinned = False
         pinDirection = ()
@@ -462,33 +377,29 @@ class GameState():
                 self.pins.remove(self.pins[i])
                 break
 
-        directions = [(1, 1), (-1, -1), (-1, 1), (1, -1)]  # diagonals
-        # enemy color is b if whiteToMove or vice versa
+        directions = [(1, 1), (-1, -1), (-1, 1), (1, -1)]  
+
         enemy_color = 'b' if self.whiteToMove else 'w'
 
         for direction in directions:
-            for i in range(1, 8):  # from one position bishop can go upto max 7th square
-                endRow = row + direction[0] * i  # destination row
-                endCol = col + direction[1] * i  # destination col
-                if 0 <= endRow < 8 and 0 <= endCol < 8:  # on the board
+            for i in range(1, 8):  
+                endRow = row + direction[0] * i 
+                endCol = col + direction[1] * i  
+                if 0 <= endRow < 8 and 0 <= endCol < 8:  
                     if not piecePinned or pinDirection == direction or pinDirection == (-direction[0], -direction[1]):
-                        # check if next square is empty
                         if self.board[endRow][endCol] == '--':
-                            # if empty then add moves
                             moves.append(
                                 Move((row, col), (endRow, endCol), self.board))
-                        # check if piece on next square is opponent
                         elif self.board[endRow][endCol][0] == enemy_color:
-                            # then you can at it to the move as you can capture it
                             moves.append(
                                 Move((row, col), (endRow, endCol), self.board))
                             break
-                        else:  # if neither then break
+                        else:  
                             break
-                    else:  # out of the board
+                    else:  
                         break
 
-    # Get all the Knight moves for the Knight located at row, col and add it to the moves
+    # Xử lý di chuyển quân mã
     def getKnightMoves(self, row, col, moves):
 
         piecePinned = False
@@ -498,33 +409,31 @@ class GameState():
                 self.pins.remove(self.pins[i])
                 break
 
-        # List of all possible knight moves
+        # Liệt kê tất cả các nước đi có thể của quân mã
         AllPossibleKnightMoves = [
             (-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]
 
         for m in AllPossibleKnightMoves:
-            endRow = row + m[0]  # destination row
-            endCol = col + m[1]  # destination col
+            endRow = row + m[0]  
+            endCol = col + m[1]  
 
             if 0 <= endRow <= 7 and 0 <= endCol <= 7:
                 if not piecePinned:
-                    # if white to move and destination either have no piece or have a black piece
                     if self.whiteToMove and (self.board[endRow][endCol] == '--' or self.board[endRow][endCol][0] == 'b'):
                         moves.append(
                             Move((row, col), (endRow, endCol), self.board))
-                    # if black to move and destination either have no piece or have a black piece
                     elif not self.whiteToMove and (self.board[endRow][endCol] == '--' or self.board[endRow][endCol][0] == 'w'):
                         moves.append(
                             Move((row, col), (endRow, endCol), self.board))
 
-    # Get all the Queen moves for the Queen located at row, col and add it to the moves
+    # xử lý di chuyển quân hậu = khả năng di chuyển của quân xe + quân tượng
     def getQueenMoves(self, row, col, moves):
         self.getBishopMoves(row, col, moves)
         self.getRookMoves(row, col, moves)
 
-    # Get all the King moves for the King located at row, col and add it to the moves
+    # Xử lý di chuyển quân vua
     def getKingMoves(self, row, col, moves):
-        # these for loops denote all possible moves for the king
+        # Vòng lặp biểu thị tất cả các nước đi có thể của quân vua
         for i in range(-1, 2):
             for j in range(-1, 2):
                 allyColor = 'w' if self.whiteToMove else 'b'
@@ -532,19 +441,17 @@ class GameState():
                     continue
                 if 0 <= row + i <= 7 and 0 <= col + j <= 7:
                     endPiece = self.board[row + i][col + j]
-                    if endPiece[0] != allyColor:  # the square is empty or has an enemy piece
-                        # temporarily move the king to check if it returns in check
+                    if endPiece[0] != allyColor:  
                         if allyColor == 'w':
                             self.whiteKinglocation = (row + i, col + j)
                         else:
                             self.blackKinglocation = (row + i, col + j)
 
                         inCheck, pins, checks = self.checkForPinsAndChecks()
-                        # if king's move doesn't return in check, append to moves
+                        # Nếu nước đi của vua không bị chiếu nữa --> thêm nước đi vào danh sách
                         if not inCheck:
                             moves.append(
                                 Move((row, col), (row + i, col + j), self.board))
-                        # move the king back to its original location
                         if allyColor == 'w':
                             self.whiteKinglocation = (row, col)
                         else:
@@ -552,6 +459,7 @@ class GameState():
 
         self.getcastleMoves(row, col, moves, allyColor)
 
+    # Kiểm tra khả năng nhập thành
     def getcastleMoves(self, row, col, moves, allyColor):
         inCheck = self.squareUnderAttack(row, col, allyColor)
         if inCheck:
@@ -560,17 +468,20 @@ class GameState():
             self.getKingsidecastleMoves(row, col, moves, allyColor)
         if (self.whiteToMove and self.whiteCastleQueenside) or (not self.whiteToMove and self.blackCastleQueenside):
             self.getQueensidecastleMoves(row, col, moves, allyColor)
-
+    
+    # Xử lý nhập thành bên vua (bên phải)
     def getKingsidecastleMoves(self, row, col, moves, allyColor):
         if self.board[row][col+1] == "--" and self.board[row][col+2] == "--" and not self.squareUnderAttack(row, col + 1, allyColor) and not self.squareUnderAttack(row, col + 2, allyColor):
             moves.append(Move((row, col), (row, col + 2),
                          self.board, castle=True))
-
+    
+    # Xử lý nhập thành bên hậu (bên trái)
     def getQueensidecastleMoves(self, row, col, moves, allyColor):
         if self.board[row][col-1] == "--" and self.board[row][col-2] == "--" and self.board[row][col-3] == "--" and not self.squareUnderAttack(row, col - 1, allyColor) and not self.squareUnderAttack(row, col - 2, allyColor):
             moves.append(Move((row, col), (row, col - 2),
                          self.board, castle=True))
-
+    
+    # Kiểm tra ghim và chiếu
     def checkForPinsAndChecks(self):
         pins = []
         checks = []
@@ -585,55 +496,40 @@ class GameState():
             allyColor = "b"
             startRow = self.blackKinglocation[0]
             startCol = self.blackKinglocation[1]
-        # from king position in all directions, look for pins and checks, keep track of pins
+        # Từ vị trí quân vua, kiểm tra các quân địch có thể ghim hoặc chiếu không
         directions = ((-1, 0), (0, -1), (1, 0), (0, 1),
                       (-1, -1), (-1, 1), (1, -1), (1, 1))
         for j in range(len(directions)):
             d = directions[j]
-            possiblePin = ()  # reset
+            possiblePin = ()  
             for i in range(1, 8):
                 endRow = startRow + d[0] * i
                 endCol = startCol + d[1] * i
                 if 0 <= endRow < 8 and 0 <= endCol < 8:
-                    # find if there is a piece
                     endPiece = self.board[endRow][endCol]
-                    # if it's your piece it could be pinned by enemy
                     if endPiece[0] == allyColor and endPiece[1] != 'K':
-                        if possiblePin == ():  # so add it to the possiblePin
+                        if possiblePin == ():  
                             possiblePin = (endRow, endCol, d[0], d[1])
-                        else:  # after that square if there is another of allied piece, no pins or check is possible
+                        else: 
                             break
-                    elif endPiece[0] == enemyColor:  # if an enemy piece is found
+                    elif endPiece[0] == enemyColor:  
                         type = endPiece[1]
-                        # Possibilities
-                        # 1) Rook in any orthogonal directions
-                        # 2) Bishop in any diagonal
-                        # 3) Queen in orthogonal or diagonal directions
-                        # 4) Pawn if onw square away in any diagonal
-                        # 5) King in any direction to 1 square (to prevent king move controlled by another king)
-                        '''
-                        For Rook we will check only if directions and up, down, left, right which is in range 0 <= j <=  3 in directions.
-                        Similarty for bishop, in directions we have added the bishop direction in directions (4 to 7).
-                        For pawn if one forward diagonal square in front of king has opponent's pawn
-                        '''
                         if (0 <= j <= 3 and type == 'R') or (4 <= j <= 7 and type == 'B') or \
                             (i == 1 and type == 'p' and ((enemyColor == 'w' and 6 <= j <= 7) or (enemyColor == 'b' and 4 <= j <= 5))) or \
                                 (type == 'Q') or (i == 1 and type == 'K'):
-                            '''
-                            now check if king is pinned or in check
-                            '''
-                            if possiblePin == ():  # no ally piece infront of king, so check
+                            # Kiểm tra quân vua có ghim hay bị chiếu không
+                            if possiblePin == ():  
                                 inCheck = True
                                 checks.append((endRow, endCol, d[0], d[1]))
                                 break
                             else:  # piece blocking so pin
                                 pins.append(possiblePin)
                                 break
-                        else:  # enemy piece infront of king but not applying any check
+                        else:  # Quân địch ở trước mặt vua nhưng không khiến quân ta bị ghim hay chiếu
                             break
                 else:
-                    break  # off board
-        # check for knight checks
+                    break  
+        # Kiểm tra quân mã có chiếu không
         knightMoves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2),
                        (1, -2), (1, 2), (2, -1), (2, 1))
         for m in knightMoves:
@@ -645,9 +541,10 @@ class GameState():
                     inCheck = True
                     checks.append((endRow, endCol, m[0], m[1]))
         return inCheck, pins, checks
-
+    
+    # Cập nhật khả năng nhập thành
     def updateCastleRights(self, move):
-
+        # Khi quân vua di chuyển
         if move.pieceMoved == 'wK':
             self.whiteCastleKingside = False
             self.whiteCastleQueenside = False
@@ -655,7 +552,7 @@ class GameState():
             self.blackCastleKingside = False
             self.blackCastleQueenside = False
 
-        # rook captured
+        # Khi quân xe bị bắt
         if move.pieceCaptured == 'wR' and move.endRow == 7 and move.endCol == 0:
             self.whiteCastleQueenside = False
         if move.pieceCaptured == 'wR' and move.endRow == 7 and move.endCol == 7:
@@ -664,9 +561,9 @@ class GameState():
             self.blackCastleQueenside = False
         if move.pieceCaptured == 'bR' and move.endRow == 0 and move.endCol == 7:
             self.blackCastleKingside = False
-
+    
+    # Trả về chuỗi String biểu diễn bàn cờ
     def getBoardString(self):
-        # Convert the board state to a string
         boardString = ""
         for row in self.board:
             for square in row:
@@ -683,13 +580,10 @@ class castleRights():
 
 
 class Move():
-    # mapping keys to values
-    # board[0][0] position in chess board is denoted as a7 (position of Black Rook)
-
+    # Chuyển đổi giữa toạ độ của bàn cờ và chỉ số mảng trong Python
     ranksToRows = {"1": 7, "2": 6, "3": 5,
                    "4": 4, "5": 3, "6": 2, "7": 1, "8": 0}
     rowsToRanks = {value: key for key, value in ranksToRows.items()}
-
     filesToCols = {"a": 0, "b": 1, "c": 2,
                    "d": 3, "e": 4, "f": 5, "g": 6, "h": 7}
     colsToFiles = {value: key for key, value in filesToCols.items()}
@@ -703,7 +597,7 @@ class Move():
         "K": "K"
     }
 
-    # add an optional parameter to identify, the square for enpassant
+
     def __init__(self, startSquare, endSquare, board, isEnpassantMove=False, castle=False):
         self.startRow = startSquare[0]
         self.startCol = startSquare[1]
@@ -718,65 +612,52 @@ class Move():
         self.isCapture = self.pieceCaptured != '--'
         self.moveID = self.startRow * 1000 + self.startCol * \
             100 + self.endRow * 10 + self.endCol
-        # pawn promotion
+         
         gs = GameState()
+        # Phong cấp tốt
         if (gs.playerWantsToPlayAsBlack):
             self.isPawnPromotion = (self.pieceMoved == "wp" and self.endRow == 7) or (
                 self.pieceMoved == "bp" and self.endRow == 0)
         else:
             self.isPawnPromotion = (self.pieceMoved == "wp" and self.endRow == 0) or (
                 self.pieceMoved == "bp" and self.endRow == 7)
-        '''
-        this is same as 
-
-        self.isPawnPromotion = False
-        if (self.pieceMoved == "wp" and self.endRow == 0) or (self.pieceMoved == "bp" and self.endRow == 7):
-            self.isPawnPromotion = True
-
-        '''
-        # en passant
+        # Enpassant
         self.isEnpassantMove = isEnpassantMove
 
-    # overriding the equals method (tell python if two moves are equal)
-    # no two pieces should be on the same square
-    # start pos and end pos can't be same
 
-    def __eq__(self, other):  # comparing object with another object saved in other
+    # So sánh hai nước đi
+    def __eq__(self, other):  
         if isinstance(other, Move):
             return self.moveID == other.moveID
         return False
-
+    
+    # Tạo kí hiệu ngắn gọn cho nước đi
     def getChessNotation(self):
         return self.getPieceNotation(self.pieceMoved, self.startCol) + self.getRankFile(self.endRow, self.endCol)
-
     def getRankFile(self, row, col):
         return self.colsToFiles[col] + self.rowsToRanks[row]
-
     def getPieceNotation(self, piece, col):
         if piece[1] == 'p':
             return self.getRankFile(self.startRow, self.startCol) + self.getRankFile(self.endRow, self.endCol)
         return self.pieceNotation[piece[1]] + self.colsToFiles[col]
 
-    # overriding the str() function
+
     def __str__(self):
-        # castle move:
+        # Kí hiệu khi thực hiện nhập thành
         if self.castle:
             return "O-O" if self.endCol == 6 else "O-O-O"
 
         startSquare = self.getRankFile(self.startRow, self.startCol)
         endSquare = self.getRankFile(self.endRow, self.endCol)
 
-        # pawn moves
+        # Kí hiệu di chuyển tốt
         if self.pieceMoved[1] == 'p':
             if self.isCapture:
                 return startSquare + "x" + endSquare
             else:
                 return startSquare+endSquare
 
-        # pawn promotion (add later)
-        # add + for check # for checkmate
-
-        # piece moves
+        # Kí hiệu di chuyển các quân còn lại
         moveString = self.pieceMoved[1]
         if self.isCapture:
             return moveString + self.colsToFiles[self.startCol] + "x" + endSquare
