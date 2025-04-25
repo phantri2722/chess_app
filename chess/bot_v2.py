@@ -15,6 +15,9 @@ open_file_bonus = 0.5
 king_safety_penalty = -0.5
 
 
+def findRandomMoves(validMoves):
+    return validMoves[random.randint(0, len(validMoves) - 1)]
+
 def findBestMove(gs, validMoves, returnQueue):
     global nextMove
     nextMove = None

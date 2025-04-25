@@ -90,4 +90,5 @@ def watch_ai_vs_ai(bot1, bot2, delay=0.5):
 if __name__ == "__main__":
     import bot_v1 as bot1
     import bot_v2 as bot2
+    import bot_v3 as bot3
     watch_ai_vs_ai(bot1, bot2, delay=0.7)

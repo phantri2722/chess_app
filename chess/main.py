@@ -3,7 +3,7 @@
 import sys
 import pygame as p
 from bases import GameState, Move
-from bot_v1 import findRandomMoves, findBestMove
+from bot_v2 import findRandomMoves, findBestMove
 from multiprocessing import Process, Queue
 
 # Hiệu ứng âm thanh
@@ -21,7 +21,7 @@ MAX_FPS = 15
 IMAGES = {}
 
 SET_WHITE_AS_BOT = False
-SET_BLACK_AS_BOT = True
+SET_BLACK_AS_BOT = False
 
 # Green color
 LIGHT_SQUARE_COLOR = (237, 238, 209)

@@ -17,6 +17,10 @@ piecePriority = {"K": 0, "p": 1, "N": 2, "B": 3, "R": 4, "Q": 5}
 
 transposition_table = {}
 
+def findRandomMoves(validMoves):
+    return validMoves[random.randint(0, len(validMoves) - 1)]
+
+
 def findBestMove(gs, validMoves, returnQueue):
     global nextMove
     nextMove = None
@@ -33,59 +37,56 @@ def findBestMove(gs, validMoves, returnQueue):
 
 
 def iterativeDeepening(gs, validMoves, turnMultiplier, startTime, timeLimit):
-    for depth in range(2, MAX_DEPTH + 1):
-        findMoveNegaMaxAlphaBeta(gs, validMoves, depth, -CHECKMATE, CHECKMATE, turnMultiplier, startTime, timeLimit)
-        if time.time() - startTime > timeLimit:
-            break
-
-
-def findMoveNegaMaxAlphaBeta(gs, validMoves, depth, alpha, beta, turnMultiplier, startTime, timeLimit):
     global nextMove
-    if time.time() - startTime > timeLimit:
-        return 0
+    for depth in range(2, MAX_DEPTH + 1):
+        bestMoveThisDepth = None
+        maxScore = -CHECKMATE
 
-    boardHash = str(gs.board) + str(gs.whiteToMove)
-    if boardHash in transposition_table and transposition_table[boardHash]["depth"] >= depth:
-        return transposition_table[boardHash]["score"]
+        def negaMaxAlphaBeta(gs, validMoves, depth, alpha, beta, turnMultiplier):
+            nonlocal bestMoveThisDepth, maxScore
+            if time.time() - startTime > timeLimit:
+                return 0
 
-    if depth == 0:
-        return turnMultiplier * scoreBoard(gs)
+            boardHash = str(gs.board) + str(gs.whiteToMove)
+            if boardHash in transposition_table and transposition_table[boardHash]["depth"] >= depth:
+                return transposition_table[boardHash]["score"]
 
-    maxScore = -CHECKMATE
-    orderedMoves = orderMoves(validMoves)
+            if depth == 0:
+                return turnMultiplier * scoreBoard(gs)
 
-    for move in orderedMoves:
-        gs.makeMove(move)
-        nextMoves = gs.getValidMoves()
-        score = -findMoveNegaMaxAlphaBeta(gs, nextMoves, depth-1, -beta, -alpha, -turnMultiplier, startTime, timeLimit)
-        gs.undoMove()
+            localMax = -CHECKMATE
+            orderedMoves = orderMoves(validMoves)
 
+            for move in orderedMoves:
+                gs.makeMove(move)
+                nextMoves = gs.getValidMoves()
+                score = -negaMaxAlphaBeta(gs, nextMoves, depth - 1, -beta, -alpha, -turnMultiplier)
+                gs.undoMove()
+
+                if time.time() - startTime > timeLimit:
+                    break
+
+                if score > localMax:
+                    localMax = score
+                    if depth == MAX_DEPTH or localMax > maxScore:
+                        bestMoveThisDepth = move
+                        maxScore = localMax
+
+                alpha = max(alpha, localMax)
+                if alpha >= beta:
+                    break
+
+            transposition_table[boardHash] = {"score": localMax, "depth": depth}
+            return localMax
+
+        negaMaxAlphaBeta(gs, validMoves, depth, -CHECKMATE, CHECKMATE, turnMultiplier)
+
+        if bestMoveThisDepth is not None:
+            nextMove = bestMoveThisDepth
         if time.time() - startTime > timeLimit:
             break
 
-        if score > maxScore:
-            maxScore = score
-            if depth == MAX_DEPTH:
-                nextMove = move
 
-        alpha = max(alpha, maxScore)
-        if alpha >= beta:
-            break
-
-    transposition_table[boardHash] = {"score": maxScore, "depth": depth}
-    return maxScore
-
-
-def orderMoves(moves):
-    # Ưu tiên bắt quân giá trị cao bằng quân giá trị thấp
-    def moveScore(move):
-        score = 0
-        if move.pieceCaptured != "--":
-            score += 10 * pieceScore[move.pieceCaptured[1]] - pieceScore[move.pieceMoved[1]]
-        score += piecePriority.get(move.pieceMoved[1], 0)
-        return -score  # sắp xếp giảm dần
-
-    return sorted(moves, key=moveScore)
 
 
 def scoreBoard(gs):
@@ -113,3 +114,14 @@ def scoreBoard(gs):
 
             score += value * sign
     return score
+
+def orderMoves(moves):
+    # Ưu tiên bắt quân giá trị cao bằng quân giá trị thấp
+    def moveScore(move):
+        score = 0
+        if move.pieceCaptured != "--":
+            score += 10 * pieceScore.get(move.pieceCaptured[1], 0) - pieceScore.get(move.pieceMoved[1], 0)
+        score += piecePriority.get(move.pieceMoved[1], 0)
+        return -score  # sắp xếp giảm dần
+
+    return sorted(moves, key=moveScore)

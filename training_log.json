@@ -1,2 +1,10 @@
 {"timestamp": "2025-04-24T19:43:46.488460", "bot1": "bot_v1", "bot2": "bot_v2", "results": {"bot1_win": 0, "bot2_win": 0, "draw": 1}}
 {"timestamp": "2025-04-24T21:39:17.960211", "bot1": "bot_v1", "bot2": "bot_v2", "results": {"bot1_win": 2, "bot2_win": 1, "draw": 7}}
+{"timestamp": "2025-04-24T22:26:13.465620", "bot1": "bot_v3", "bot2": "bot_v2", "results": {"bot1_win": 0, "bot2_win": 0, "draw": 1}}
+{"timestamp": "2025-04-25T12:12:39.501822", "bot1": "bot_v1", "bot2": "bot_v3", "results": {"bot1_win": 1, "bot2_win": 0, "draw": 0}}
+{"timestamp": "2025-04-25T12:14:56.948101", "bot1": "bot_v1", "bot2": "bot_v3", "results": {"bot1_win": 0, "bot2_win": 1, "draw": 0}}
+{"timestamp": "2025-04-25T12:21:42.100827", "bot1": "bot_v1", "bot2": "bot_v3", "results": {"bot1_win": 4, "bot2_win": 5, "draw": 1}}
+{"timestamp": "2025-04-25T12:22:41.645739", "bot1": "bot_v2", "bot2": "bot_v3", "results": {"bot1_win": 1, "bot2_win": 0, "draw": 0}}
+{"timestamp": "2025-04-25T12:25:51.760131", "bot1": "bot_v2", "bot2": "bot_v3", "results": {"bot1_win": 3, "bot2_win": 2, "draw": 0}}
+{"timestamp": "2025-04-25T14:05:02.473759", "bot1": "bot_v2", "bot2": "bot_v3", "results": {"bot1_win": 12, "bot2_win": 5, "draw": 3}}
+{"timestamp": "2025-04-25T14:52:53.704429", "bot1": "bot_v2", "bot2": "bot_v3", "results": {"bot1_win": 11, "bot2_win": 8, "draw": 1}}
