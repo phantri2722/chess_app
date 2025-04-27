@@ -61,99 +61,133 @@ blackPawnScores = [[0, 0, 0, 0, 0, 0, 0, 0],
 piecePositionScores = {"N": knightScores, "B": bishopScores, "Q": queenScores,
                        "R": rookScores, "wp": whitePawnScores, "bp": blackPawnScores}
 
-CHECKMATE = 1000
+CHECKMATE = 100000
 STALEMATE = 0
-DEPTH = 4
+MAX_DEPTH = 6
 
 
-def findRandomMoves(validMoves):
-    return validMoves[random.randint(0, len(validMoves) - 1)]
+class TranspositionTable:
+    def __init__(self):
+        self.table = {}
 
+    def get(self, zobrist_hash):
+        return self.table.get(zobrist_hash, None)
 
+    def put(self, zobrist_hash, depth, score):
+        self.table[zobrist_hash] = (depth, score)
+
+transTable = TranspositionTable()
+
+# Main entry point
 def findBestMove(gs, validMoves, returnQueue):
-    global nextMove, whitePawnScores, blackPawnScores
+    global nextMove
     nextMove = None
-    random.shuffle(validMoves)
 
-    if gs.playerWantsToPlayAsBlack:
-        whitePawnScores, blackPawnScores = blackPawnScores, whitePawnScores
+    timeLimit = 9.5  # Buffer to guarantee under 10s
+    start = time.time()
 
-    turnMultiplier = 1 if gs.whiteToMove else -1
-    startTime = time.time()
-    timeLimit = 2
+    iterativeDeepening(gs, validMoves, start, timeLimit)
 
-    findMoveNegaMaxAlphaBeta(gs, validMoves, DEPTH,
-                             -CHECKMATE, CHECKMATE,
-                             turnMultiplier,
-                             startTime, timeLimit)
-    if nextMove is None and validMoves:
-        nextMove = validMoves[0]
+    if nextMove is None:
+        nextMove = random.choice(validMoves)
 
     returnQueue.put(nextMove)
 
 
-def findMoveNegaMaxAlphaBeta(gs, validMoves, depth, alpha, beta, turnMultiplier, startTime, timeLimit):
+def iterativeDeepening(gs, validMoves, start, timeLimit):
     global nextMove
-    if time.time() - startTime > timeLimit:
-        return 0
+    depth = 1
+    while True:
+        if time.time() - start > timeLimit:
+            break
+        tempMove = None
+        score = negaMaxAlphaBeta(gs, validMoves, depth, -CHECKMATE, CHECKMATE, 1 if gs.whiteToMove else -1, start, timeLimit, tempMove)
+        if time.time() - start > timeLimit:
+            break
+        nextMove = tempMove
+        depth += 1
 
+
+def negaMaxAlphaBeta(gs, validMoves, depth, alpha, beta, turnMultiplier, start, timeLimit, tempMove):
     if depth == 0:
-        return turnMultiplier * scoreBoard(gs, turnMultiplier)
+        return quiescence(gs, alpha, beta, turnMultiplier)
 
     maxScore = -CHECKMATE
-    for move in validMoves:
+    orderedMoves = orderMoves(validMoves)
+
+    for move in orderedMoves:
+        if time.time() - start > timeLimit:
+            break
         gs.makeMove(move)
         nextMoves = gs.getValidMoves()
-        score = -findMoveNegaMaxAlphaBeta(gs, nextMoves, depth-1, -beta, -alpha, -turnMultiplier, startTime, timeLimit)
+        score = -negaMaxAlphaBeta(gs, nextMoves, depth-1, -beta, -alpha, -turnMultiplier, start, timeLimit, tempMove)
         gs.undoMove()
-
-        if time.time() - startTime > timeLimit:
-            return 0
 
         if score > maxScore:
             maxScore = score
-            if depth == DEPTH:
+            if depth == MAX_DEPTH:
                 nextMove = move
-                print(move, score)
 
-        if maxScore > alpha:
-            alpha = maxScore
+        alpha = max(alpha, score)
         if alpha >= beta:
             break
+
     return maxScore
 
 
-def scoreBoard(gs, turnMultiplier):
+def quiescence(gs, alpha, beta, turnMultiplier):
+    stand_pat = turnMultiplier * scoreBoard(gs)
+    if stand_pat >= beta:
+        return beta
+    if alpha < stand_pat:
+        alpha = stand_pat
+
+    for move in gs.getValidMoves():
+        if move.isCapture:
+            gs.makeMove(move)
+            score = -quiescence(gs, -beta, -alpha, -turnMultiplier)
+            gs.undoMove()
+
+            if score >= beta:
+                return beta
+            if score > alpha:
+                alpha = score
+
+    return alpha
+
+
+def orderMoves(moves):
+    captures = [m for m in moves if m.isCapture]
+    nonCaptures = [m for m in moves if not m.isCapture]
+    return captures + nonCaptures
+
+
+def scoreBoard(gs):
     if gs.checkmate:
-        if gs.whiteToMove:
-            gs.checkmate = False
-            return -CHECKMATE
-        else:
-            gs.checkmate = False
-            return CHECKMATE
+        return -CHECKMATE if gs.whiteToMove else CHECKMATE
     elif gs.stalemate:
         return STALEMATE
 
     score = 0
-    for row in range(len(gs.board)):
-        for col in range(len(gs.board[row])):
-            square = gs.board[row][col]
-            if square != "--":
-                piecePositionScore = 0
-                if square[1] != "K":
-                    if square[1] == "p":
-                        piecePositionScore = piecePositionScores[square][row][col]
-                    else:
-                        piecePositionScore = piecePositionScores[square[1]][row][col]
-
-                if turnMultiplier == 1:
-                    if square[0] == 'w':
-                        score += pieceScore[square[1]] + piecePositionScore * .1
-                    elif square[0] == 'b':
-                        score -= pieceScore[square[1]] + piecePositionScore * .1
+    for row in range(8):
+        for col in range(8):
+            piece = gs.board[row][col]
+            if piece != "--":
+                value = pieceScore.get(piece[1], 0)
+                posValue = 0
+                if piece[1] != "K":
+                    posValue = piecePositionScores.get(piece, piecePositionScores.get(piece[1], [[0]*8]*8))[row][col]
+                
+                if piece[0] == 'w':
+                    score += value + posValue * 0.1
                 else:
-                    if square[0] == 'w':
-                        score -= pieceScore[square[1]] + piecePositionScore * .1
-                    elif square[0] == 'b':
-                        score += pieceScore[square[1]] + piecePositionScore * .1
+                    score -= value + posValue * 0.1
+    
+    # Bonus for mobility
+    score += 0.1 * (len(gs.getValidMoves()) if gs.whiteToMove else -len(gs.getValidMoves()))
+
     return score
+
+
+def findRandomMoves(validMoves):
+    return random.choice(validMoves)
