@@ -3,7 +3,7 @@
 import sys
 import pygame as p
 from bases import GameState, Move
-from bot_v1 import findRandomMoves, findBestMove
+from bot_v2 import findRandomMoves, findBestMove
 from multiprocessing import Process, Queue
 
 # Hiệu ứng âm thanh
@@ -336,8 +336,7 @@ def main():
                 # Nếu nước đi của AI là phong cấp tốt
                 if AIMove.isPawnPromotion:
                     promotion_choice = pawnPromotionPopup(screen, gs)
-                    gs.board[AIMove.endRow][AIMove.endCol] = AIMove.pieceMoved[0] + \
-                        promotion_choice
+                    gs.board[AIMove.endRow][AIMove.endCol] = AIMove.pieceMoved[0] + 'Q'
                     promote_sound.play()
                     pieceCaptured = False
 
