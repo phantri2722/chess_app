@@ -104,11 +104,11 @@ def pawnPromotionPopup(screen, gs):
         p.display.flip()
 
 # Vẽ trạng thái trò chơi
-def drawGameState(screen, gs, validMoves, squareSelected, moveLogFont):
+def drawGameState(screen, gs, validMoves, squareSelected, moveLogFont, moveLogScroll):
     drawSquare(screen)  # draw square on board
     highlightSquares(screen, gs, validMoves, squareSelected)
     drawPieces(screen, gs.board)
-    drawMoveLog(screen, gs, moveLogFont)
+    drawMoveLog(screen, gs, moveLogFont, moveLogScroll)
 
 # Vẽ bàn cờ với các ô vuông sáng và tối
 def drawSquare(screen):
@@ -146,7 +146,7 @@ def drawPieces(screen, board):
 
 
 # Hiển thị lịch sử các nước đi
-def drawMoveLog(screen, gs, font):
+def drawMoveLog(screen, gs, font, moveLogScroll):
     moveLogRect = p.Rect(
         BOARD_WIDTH, 0, MOVE_LOG_PANEL_WIDTH, MOVE_LOG_PANEL_HEIGHT)
     p.draw.rect(screen, p.Color(LIGHT_SQUARE_COLOR), moveLogRect)
@@ -172,7 +172,7 @@ def drawMoveLog(screen, gs, font):
 
         textObject = font.render(text, True, p.Color('black'))
 
-        textLocation = moveLogRect.move(padding, textY)
+        textLocation = moveLogRect.move(padding, textY + moveLogScroll)
         screen.blit(textObject, textLocation)
 
         textY += textObject.get_height() + lineSpacing
@@ -194,10 +194,161 @@ def drawEndGameText(screen, text):
     textObject = font.render(text, 0, p.Color('Black'))
     screen.blit(textObject, textLocation.move(1, 1))
 
+def menuScreen(screen):
+    font = p.font.SysFont("Times New Roman", 40, True, False)
+    titleFont = p.font.SysFont("Times New Roman", 60, True, True)
+    click = False
+
+    background = p.image.load("images/background.png")
+    background = p.transform.scale(background, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    while True:
+        screen.blit(background, (0, 0))
+
+        mx, my = p.mouse.get_pos()
+
+        playButton = p.Rect(220, 200, 300, 70)
+        instructionsButton = p.Rect(220, 300, 300, 70)
+
+        if playButton.collidepoint((mx, my)):
+            if click:
+                return "play"
+        if instructionsButton.collidepoint((mx, my)):
+            if click:
+                return "instructions"
+        
+
+        shadow_rect1 = p.Rect(225, 205, 300, 70)
+        p.draw.rect(screen, (30, 30, 30), shadow_rect1, border_radius=12)
+
+        shadow_rect2 = p.Rect(225, 305, 300, 70)
+        p.draw.rect(screen, (30, 30, 30), shadow_rect2, border_radius=12)
+
+        p.draw.rect(screen, (255, 165, 0), playButton, border_radius = 12)
+        p.draw.rect(screen, (102, 204, 255), instructionsButton, border_radius = 12)
+
+        playText = font.render('PLAY', True, p.Color('white'))
+        screen.blit(playText, (playButton.x + 100, playButton.y + 15))
+
+        instructionsText = font.render('INSTRUCTION', True, p.Color('white'))
+        screen.blit(instructionsText, (instructionsButton.x + 8, instructionsButton.y + 15))
+
+        click = False
+        for event in p.event.get():
+            if event.type == p.QUIT:
+                p.quit()
+                sys.exit()
+            if event.type == p.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    click = True
+
+        p.display.update()
+
+
+def modeSelectionScreen(screen):
+    font = p.font.SysFont("Times New Roman", 40, True, False)
+    click = False
+
+    background = p.image.load("images/background.png")
+    background = p.transform.scale(background, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    while True:
+        screen.blit(background, (0, 0))
+        mx, my = p.mouse.get_pos()
+
+        pvpButton = p.Rect(220, 180, 300, 70)
+        pveButton = p.Rect(220, 280, 300, 70)
+        eveButton = p.Rect(220, 380, 300, 70)
+
+        shadow_rect1 = p.Rect(225, 185, 300, 70)
+        p.draw.rect(screen, (30, 30, 30), shadow_rect1, border_radius=12)
+
+        shadow_rect2 = p.Rect(225, 285, 300, 70)
+        p.draw.rect(screen, (30, 30, 30), shadow_rect2, border_radius=12)
+
+        shadow_rect3 = p.Rect(225, 385, 300, 70)
+        p.draw.rect(screen, (30, 30, 30), shadow_rect3, border_radius=12)
+
+        if pvpButton.collidepoint((mx, my)):
+            if click:
+                return "PvP"
+        if pveButton.collidepoint((mx, my)):
+            if click:
+                return "PvE"
+        if eveButton.collidepoint((mx, my)):
+            if click:
+                return "EvE"
+
+        p.draw.rect(screen, (255, 153, 51), pvpButton, border_radius = 12)
+        p.draw.rect(screen, (102, 204, 0), pveButton, border_radius = 12)
+        p.draw.rect(screen, (204, 0, 0), eveButton, border_radius = 12)
+
+        pvpText = font.render('Player vs Player', True, p.Color('white'))
+        screen.blit(pvpText, (pvpButton.x + 12, pvpButton.y + 15))
+
+        pveText = font.render('Player vs Bot', True, p.Color('white'))
+        screen.blit(pveText, (pveButton.x + 40, pveButton.y + 15))
+
+        eveText = font.render('Bot vs Bot', True, p.Color('white'))
+        screen.blit(eveText, (eveButton.x + 65, eveButton.y + 15))
+
+        click = False
+        for event in p.event.get():
+            if event.type == p.QUIT:
+                p.quit()
+                sys.exit()
+            if event.type == p.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    click = True
+
+        p.display.update()
+
+
+def instructionScreen(screen):
+    font = p.font.SysFont("Times New Roman", 30, False, False)
+    smallFont = p.font.SysFont("Times New Roman", 20, False, False)
+    instruction = p.image.load("images/instruction.png")
+    instruction = p.transform.scale(instruction, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    while True:
+        screen.blit(instruction, (0, 0))
+
+        for event in p.event.get():
+            if event.type == p.QUIT:
+                p.quit()
+                sys.exit()
+            if event.type == p.KEYDOWN or event.type == p.MOUSEBUTTONDOWN:
+                return  # Quay lại menu
+
+        p.display.update()
+
+
 
 def main():
     # Khởi tạo game
     p.init()
+    global SCREEN_WIDTH, SCREEN_HEIGHT
+    SCREEN_WIDTH = BOARD_WIDTH + MOVE_LOG_PANEL_WIDTH
+    SCREEN_HEIGHT = BOARD_HEIGHT
+    screen = p.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    
+    # Màn hình menu
+    while True:
+        action = menuScreen(screen)
+        if action == "play":
+            mode = modeSelectionScreen(screen)
+            if mode == "PvP":
+                SET_WHITE_AS_BOT = False
+                SET_BLACK_AS_BOT = False
+            elif mode == "PvE":
+                SET_WHITE_AS_BOT = False
+                SET_BLACK_AS_BOT = True
+            elif mode == "EvE":
+                SET_WHITE_AS_BOT = True
+                SET_BLACK_AS_BOT = True
+            break
+        elif action == "instructions":
+            instructionScreen(screen)
+
     screen = p.display.set_mode(
         (BOARD_WIDTH + MOVE_LOG_PANEL_WIDTH, BOARD_HEIGHT))
     clock = p.time.Clock()
@@ -225,6 +376,7 @@ def main():
     positionHistory = "" 
     previousPos = ""
     countMovesForDraw = 0 
+    moveLogScroll = 0
     COUNT_DRAW = 0
     while running:
         # Lượt đi của người chơi
@@ -239,7 +391,12 @@ def main():
             # Sự kiện click chuột
             elif e.type == p.MOUSEBUTTONDOWN:
                 # Khi game chưa kết thúc
-                if not gameOver:  
+                if not gameOver:
+                    if e.button == 4:  # Lăn chuột lên
+                        moveLogScroll = min(moveLogScroll + 20, 0)  # Không scroll quá đầu
+                    if e.button == 5:  # Lăn chuột xuống
+                        moveLogScroll -= 20  # Scroll xuống 20 pixels mỗi lần
+  
                     location = p.mouse.get_pos()
                     col = location[0]//SQ_SIZE
                     row = location[1]//SQ_SIZE
@@ -376,7 +533,7 @@ def main():
             moveUndone = False
 
         # Vẽ trạng thái trò chơi
-        drawGameState(screen, gs, validMoves, squareSelected, moveLogFont)
+        drawGameState(screen, gs, validMoves, squareSelected, moveLogFont, moveLogScroll)
 
         # Hoà
         if COUNT_DRAW == 1:

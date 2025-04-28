@@ -1,4 +1,4 @@
-# Upgraded Chess Bot: bot_v3.py - ELO 2200+
+# Upgraded Chess Bot: bot_v2.py - ELO 2200+
 import random
 import time
 import math
